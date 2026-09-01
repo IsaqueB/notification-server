@@ -1,13 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"sync"
 
-	"github.com/gofiber/fiber/v3"
 	"github.com/gorilla/websocket"
 )
 
@@ -152,12 +149,6 @@ func (s *Server) writePump(client *Client) {
 	}
 }
 
-type RequestMessage struct {
-	ClientId string `json:"client_id"`
-	Title    string `json:"title"`
-	Message  string `json:"message"`
-}
-
 func main() {
 	server := NewServer()
 	// go server.Run()
@@ -166,33 +157,4 @@ func main() {
 
 	logger.Log("Server rodando em :8080!")
 	go http.ListenAndServe(":8080", nil)
-
-	app := fiber.New()
-	app.Post("/msg", func(c fiber.Ctx) error {
-		body := c.Body()
-		if len(body) < 1 {
-			c.SendStatus(400)
-			return c.SendString("Mensagem vazia!")
-		}
-
-		reqMsg := RequestMessage{}
-		if err := json.Unmarshal(body, &reqMsg); err != nil {
-			c.SendStatus(400)
-			return c.SendString("Mensagem inválida")
-		}
-
-		if reqMsg.ClientId == "" || reqMsg.Message == "" || reqMsg.Title == "" {
-			c.SendStatus(400)
-			return c.SendString("Mensagem inválida")
-		}
-
-		if server.Clients[reqMsg.ClientId] == nil {
-			c.SendStatus(400)
-			return c.SendString("Cliente não conectado")
-		}
-
-		server.Clients[reqMsg.ClientId].Send <- body
-		return c.SendString("Requisição de envio de mensagem enviada!")
-	})
-	log.Fatal(app.Listen(":3000"))
 }
