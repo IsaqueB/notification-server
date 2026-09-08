@@ -11,30 +11,30 @@ type RequestMessage struct {
 	Message  string `json:"message"`
 }
 
-type WS_ClientMessageType int
+type WebsocketClientMessageType int
 
 const (
 	ACK = iota + 1
 	HEARTBEAT
 )
 
-type WS_ClientMessage struct {
-	Type     WS_ClientMessageType `json:"type"`
-	ClientId string               `json:"client_id"`
-	Title    string               `json:"title"`
-	Message  string               `json:"message"`
+type WebsocketClientMessage struct {
+	Type     WebsocketClientMessageType `json:"type"`
+	ClientId string                     `json:"client_id"`
+	Title    string                     `json:"title"`
+	Message  string                     `json:"message"`
 }
 
-func (m WS_ClientMessage) MarshalJSON() ([]byte, error) {
+func (m WebsocketClientMessage) MarshalJSON() ([]byte, error) {
 	return json.Marshal(map[string]interface{}{
-		"type":      map[WS_ClientMessageType]string{ACK: "ACK", HEARTBEAT: "HEARTBEAT"}[m.Type],
+		"type":      map[WebsocketClientMessageType]string{ACK: "ACK", HEARTBEAT: "HEARTBEAT"}[m.Type],
 		"client_id": m.ClientId,
 		"title":     m.Title,
 		"message":   m.Message,
 	})
 }
 
-func (m *WS_ClientMessage) UnmarshalJSON(data []byte) error {
+func (m *WebsocketClientMessage) UnmarshalJSON(data []byte) error {
 	var raw map[string]interface{}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
@@ -53,11 +53,11 @@ func (m *WS_ClientMessage) UnmarshalJSON(data []byte) error {
 			m.Type = HEARTBEAT
 		default:
 			if num, err := strconv.Atoi(v); err == nil {
-				m.Type = WS_ClientMessageType(num)
+				m.Type = WebsocketClientMessageType(num)
 			}
 		}
 	case float64:
-		m.Type = WS_ClientMessageType(v)
+		m.Type = WebsocketClientMessageType(v)
 	}
 
 	return nil

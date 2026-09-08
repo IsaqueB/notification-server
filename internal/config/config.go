@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/IsaqueB/notification-server/internal/models"
+	"github.com/IsaqueB/notification-server/pkg/logger"
 	"github.com/joho/godotenv"
 )
 
@@ -14,6 +16,7 @@ type Config struct {
 	Redis     RedisConfig
 	Auth      AuthConfig
 	LogLevel  int
+	Topics    []models.Topic
 }
 
 type ServerConfig struct {
@@ -67,10 +70,11 @@ func Load() *Config {
 			DB:       getIntEnv("REDIS_DB", 0),
 		},
 		Auth: AuthConfig{
-			Secret:     getEnv("AUTH_SECRET", "super-secret-key"),
+			// Secret:     getEnv("AUTH_SECRET", "super-secret-key"),
 			Expiration: getDurationEnv("AUTH_EXPIRATION", 24*time.Hour),
 		},
-		LogLevel: getIntEnv("LOG_LEVEL", 1),
+		LogLevel: getIntEnv("LOG_LEVEL", logger.DEBUG),
+		Topics:   models.GetAllNotificationTopics(),
 	}
 }
 

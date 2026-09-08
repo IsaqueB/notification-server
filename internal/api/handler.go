@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/IsaqueB/notification-server/internal/broker"
+	"github.com/IsaqueB/notification-server/internal/middleware"
 	"github.com/IsaqueB/notification-server/internal/models"
 	"github.com/IsaqueB/notification-server/internal/registry"
 	"github.com/IsaqueB/notification-server/pkg/logger"
@@ -29,6 +30,8 @@ func NewHandler(b broker.Broker, r registry.Registry, log *logger.Logger) *Handl
 func (h *Handler) SetupRoutes() *mux.Router {
 	r := mux.NewRouter()
 
+	r.Use(h.loggingMiddleware, middleware.Cors)
+
 	r.HandleFunc("/api/notify", h.HandleNotify).Methods("POST")
 	r.HandleFunc("/api/notify/all", h.HandleNotifyAll).Methods("POST")
 	r.HandleFunc("/api/clients", h.HandleListClients).Methods("GET")
@@ -45,17 +48,27 @@ func (h *Handler) HandleNotify(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.log.Error("Failed to decode notify request", err)
 		h.respondError(w, http.StatusBadRequest, "JSON inválido")
 		return
 	}
 
-	if req.ClientID == "" || req.Notification.Title == "" {
+	if req.Notification.Title == "" {
 		h.respondError(w, http.StatusBadRequest, "Campos obrigatórios faltando")
 		return
 	}
 
 	req.Notification.ClientID = req.ClientID
 	req.Notification.CreatedAt = time.Now()
+
+	if req.Notification.Topic == models.EMPTY {
+		req.Notification.Topic = models.ALL
+	}
+
+	if req.Notification.Topic == models.PRIVATE && req.Notification.ClientID == "" {
+		h.respondError(w, http.StatusBadRequest, "Necessário client_id para notificações privadas")
+		return
+	}
 
 	if err := h.broker.PublishNotification(r.Context(), &req.Notification); err != nil {
 		h.respondError(w, http.StatusInternalServerError, "Erro ao publicar notificação")

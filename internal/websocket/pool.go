@@ -2,62 +2,62 @@ package websocket
 
 import (
 	"context"
-	"encoding/json"
 	"sync"
-	"time"
 
-	"github.com/IsaqueB/notification-server/internal/broker"
+	"github.com/IsaqueB/notification-server/internal/models"
+	"github.com/IsaqueB/notification-server/pkg/logger"
 	"github.com/gorilla/websocket"
 )
 
 const SEND_CHANNEL_SIZE = 256
 
 type Pool struct {
-	clients    map[string]*Client
+	log        *logger.Logger
+	clients    map[string]*models.WebsocketClient
 	mu         sync.RWMutex
-	register   chan *Client
-	unregister chan *Client
+	register   chan *models.WebsocketClient
+	unregister chan *models.WebsocketClient
 }
 
-type Client struct {
-	Id   string
-	Conn *websocket.Conn
-	Send chan []byte
-
-	LastSeen time.Time
-}
-
-func NewClient(id string, conn *websocket.Conn) *Client {
-	return &Client{
+func NewClient(id string, conn *websocket.Conn) *models.WebsocketClient {
+	return &models.WebsocketClient{
 		Id:   id,
 		Conn: conn,
 		Send: make(chan []byte, SEND_CHANNEL_SIZE),
 	}
 }
 
-func NewPool() *Pool {
+func NewPool(log *logger.Logger) *Pool {
 	return &Pool{
-		clients:    make(map[string]*Client),
+		log:        log,
+		clients:    make(map[string]*models.WebsocketClient),
 		mu:         sync.RWMutex{},
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		register:   make(chan *models.WebsocketClient),
+		unregister: make(chan *models.WebsocketClient),
 	}
 }
 
-func (p *Pool) Register(client *Client) {
+func (p *Pool) Register(client *models.WebsocketClient) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.clients[client.Id] = client
 }
 
-func (p *Pool) Unregister(id string) {
+func (p *Pool) DisconnectClient(client *models.WebsocketClient) error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-
-	if client, exists := p.clients[id]; exists {
-		close(client.Send)
-		delete(p.clients, id)
+	current, exists := p.clients[client.Id]
+	if !exists || current != client {
+		return nil
 	}
+	// Close connection
+	closeMsg := websocket.FormatCloseMessage(websocket.ClosePolicyViolation, "New connection established, closing old one")
+	client.Conn.WriteMessage(websocket.CloseMessage, closeMsg)
+	client.Conn.Close()
+	// Remove from pool
+	delete(p.clients, client.Id)
+	close(client.Send)
+	return nil
 }
 
 func (p *Pool) SendToClient(id string, message []byte) bool {
@@ -81,25 +81,11 @@ func (p *Pool) Broadcast(message []byte) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	for clientID, client := range p.clients {
+	for _, client := range p.clients {
 		select {
 		case client.Send <- message:
 		default:
-			go p.Unregister(clientID)
-		}
-	}
-}
 
-func (p *Pool) ConsumeMessages(ctx context.Context, broker broker.Broker) {
-	notifications, _ := broker.SubscribeNotifications(ctx)
-
-	for notification := range notifications {
-		data, _ := json.Marshal(notification)
-
-		if notification.ClientID != "" {
-			p.SendToClient(notification.ClientID, data)
-		} else {
-			p.Broadcast(data)
 		}
 	}
 }
@@ -108,16 +94,16 @@ func (p *Pool) Shutdown(ctx context.Context) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	deadline := time.Now().Add(5 * time.Second)
-	for id, client := range p.clients {
-		err := client.Conn.WriteControl(
-			websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.CloseGoingAway, "Server shutting down"),
-			deadline,
-		)
-		// Cannot use unregister channel or method because mutex is locked while for is running.
-		if err != nil {
-			go p.Unregister(id)
-		}
+	// deadline := time.Now().Add(5 * time.Second)
+	for _, client := range p.clients {
+		p.DisconnectClient(client)
 	}
+}
+
+func (p *Pool) IsClientConnected(clientId string) bool {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+
+	_, exists := p.clients[clientId]
+	return exists
 }

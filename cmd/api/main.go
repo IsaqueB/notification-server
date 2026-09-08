@@ -8,26 +8,26 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/IsaqueB/notification-server/internal/api"
 	"github.com/IsaqueB/notification-server/internal/broker"
 	"github.com/IsaqueB/notification-server/internal/config"
 	"github.com/IsaqueB/notification-server/internal/registry"
 	"github.com/IsaqueB/notification-server/pkg/logger"
 )
 
-func main() {
+func Run() {
 	cfg := config.Load()
-	log := logger.New()
+	log := logger.New(cfg.LogLevel)
 
-	redisBroker, err := broker.NewRedisBroker(cfg.Redis)
+	redisBroker, err := broker.NewRedisBroker(cfg.Redis, cfg.Topics, log)
 	if err != nil {
 		log.Fatal("Erro ao conectar no Redis:", err)
 	}
 	defer redisBroker.Close()
 
 	clientRegistry := registry.NewRedisRegistry(cfg.Redis)
-	// authManager := auth.NewJWTAuth(cfg.Auth)
 
-	handler := NewHandler(redisBroker, clientRegistry, log)
+	handler := api.NewHandler(redisBroker, clientRegistry, log)
 	router := handler.SetupRoutes()
 
 	server := &http.Server{
