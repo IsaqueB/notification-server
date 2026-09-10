@@ -2,6 +2,8 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -32,11 +34,15 @@ func (h *Handler) SetupRoutes() *mux.Router {
 
 	r.Use(h.loggingMiddleware, middleware.Cors)
 
-	r.HandleFunc("/api/notify", h.HandleNotify).Methods("POST")
-	r.HandleFunc("/api/notify/all", h.HandleNotifyAll).Methods("POST")
-	r.HandleFunc("/api/clients", h.HandleListClients).Methods("GET")
-	r.HandleFunc("/api/clients/{id}", h.HandleGetClient).Methods("GET")
-	r.HandleFunc("/api/health", h.HandleHealth).Methods("GET")
+	r.HandleFunc("/notify", h.HandleNotify).Methods("POST")
+	r.HandleFunc("/notify/all", h.HandleNotifyAll).Methods("POST")
+	r.HandleFunc("/clients", h.HandleListClients).Methods("GET")
+	r.HandleFunc("/clients/{id}", h.HandleGetClient).Methods("GET")
+	r.HandleFunc("/health", h.HandleHealth).Methods("GET")
+
+	webhookBlingRouter := r.NewRoute().Subrouter()
+	webhookBlingRouter.Use(h.webhookBlingInvoiceIssuedAuthorization)
+	webhookBlingRouter.HandleFunc("/webhook/bling/invoice-issued", h.HandleBlingInvoiceIssued).Methods("POST")
 
 	return r
 }
@@ -133,4 +139,31 @@ func (h *Handler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 		"status":    "healthy",
 		"timestamp": time.Now(),
 	})
+}
+
+func (h *Handler) HandleBlingInvoiceIssued(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "invalid body")
+	}
+	event := models.BlingWebhookEvent[models.BlingWebhookPayloadInvoice]{}
+	if err := json.Unmarshal(body, &event); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Erro ao publicar notificação")
+		return
+	}
+	// Parse from event to notification
+	notification := &models.Notification{
+		Topic:    models.INVOICE_ISSUED,
+		Title:    "Nova Nota Fiscal Emitida!",
+		Message:  fmt.Sprintf("A NF %d foi emitida pela SEFAZ", event.Data.Number),
+		Sound:    true,
+		Priority: "critical",
+	}
+
+	if err := h.broker.PublishNotification(r.Context(), notification); err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Erro ao publicar notificação")
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, nil)
 }
