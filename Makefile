@@ -9,21 +9,21 @@ help:
 	@echo "  make ps       - Status"
 
 up:
-	docker-compose up -d
+	docker compose up -d
 
 down:
-	docker-compose down
+	docker compose down
 
 restart:
-	docker-compose restart
+	docker compose restart
 
 logs:
-	docker-compose logs -f
+	docker compose logs -f
 
 ps:
-	docker-compose ps
+	docker compose ps
 
 clean:
-	docker-compose down -v --remove-orphans
+	docker compose down -v --remove-orphans
 
 .DEFAULT_GOAL := help
