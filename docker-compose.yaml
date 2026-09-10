@@ -27,7 +27,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-    command: go run main.go
+    command: go run main.go -r api
     env_file:
       - .env
     ports:
@@ -45,7 +45,7 @@ services:
     working_dir: /app
     volumes:
       - .:/app
-    command: go run main.go -r=worker
+    command: go run main.go -r worker
     env_file:
       - .env
     ports:

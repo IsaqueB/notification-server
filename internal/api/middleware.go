@@ -52,21 +52,25 @@ func (h *Handler) webhookBlingInvoiceIssuedAuthorization(next http.Handler) http
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		signature := r.Header.Get("X-Notification-Signature-256")
 		if signature == "" {
+			h.log.Error("webhook middleware auth", "Could not find signature in header")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		message := os.Getenv("BRACOMIL_BLING_WEBHOOK_INVOICE_ISSUED")
 		if message == "" {
+			h.log.Error("webhook middleware auth", "Could not get get bling webhook")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		secret := os.Getenv("AUTH_SECRET")
 		if secret == "" {
+			h.log.Error("webhook middleware auth", "Could not get auth secret in env")
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		sign := base64.RawURLEncoding.EncodeToString(auth.Sign_HS256([]byte(message), []byte(secret)))
 		if signature != sign {
+			h.log.Error("webhook middleware auth", "signature in header was not equal to calculated")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
