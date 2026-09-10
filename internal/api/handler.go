@@ -148,14 +148,14 @@ func (h *Handler) HandleBlingInvoiceIssued(w http.ResponseWriter, r *http.Reques
 	}
 	event := models.BlingWebhookEvent[models.BlingWebhookPayloadInvoice]{}
 	if err := json.Unmarshal(body, &event); err != nil {
-		h.respondError(w, http.StatusBadRequest, "Erro ao publicar notificação")
+		h.respondError(w, http.StatusBadRequest, "Erro ao fazer unmarshal do evento")
 		return
 	}
 	// Parse from event to notification
 	notification := &models.Notification{
 		Topic:    models.INVOICE_ISSUED,
 		Title:    "Nova Nota Fiscal Emitida!",
-		Message:  fmt.Sprintf("A NF %d foi emitida pela SEFAZ", event.Data.Number),
+		Message:  fmt.Sprintf("A NF %s foi emitida pela SEFAZ", event.Data.Number),
 		Sound:    true,
 		Priority: "critical",
 	}

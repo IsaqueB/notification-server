@@ -30,10 +30,10 @@ type BlingWebhookEvent[T BlingWebhookEventTypes] struct {
 }
 
 type BlingWebhookPayloadInvoice struct {
-	Id            string                              `json:"id"`
+	Id            int32                               `json:"id"`
 	Type          BlingWebhookInvoicePayloadType      `json:"tipo"`
 	Situation     BlingWebhookInvoicePayloadSituation `json:"situacao"`
-	Number        int32                               `json:"numero"`
+	Number        string                              `json:"numero"`
 	EmissionDate  string                              `json:"dataEmissao"`
 	OperationDate string                              `json:"dataOperacao"`
 	Contact       struct {
