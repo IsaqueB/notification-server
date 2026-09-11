@@ -37,8 +37,8 @@ func NewHandler(pool *Pool, dispatcher *dispatcher.Dispatcher, log *logger.Logge
 		pool:               pool,
 		dispatcher:         dispatcher,
 		log:                log,
-		pingTimer:          15 * time.Second,
-		pongAwaitTime:      20 * time.Second,
+		pingTimer:          100 * time.Second,
+		pongAwaitTime:      60 * time.Second,
 		DisconnectClientCh: make(chan *models.WebsocketClient, 256),
 		Shutdown:           shutdownCh,
 	}
@@ -119,6 +119,26 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		token, err = auth.CreateJWT_HS256(
 			"weverton",
 			[]models.Topic{models.INVOICE_ISSUED, models.RECEIPT_RECEIVED},
+			expiresAt,
+		)
+		if err != nil {
+			http.Error(w, "error creating jwt token", http.StatusInternalServerError)
+			return
+		}
+	case "isaque":
+		secret := os.Getenv("ISAQUE_LOGIN_SECRET")
+		if secret == "" {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if secret != body.Token {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		var err error
+		token, err = auth.CreateJWT_HS256(
+			"isaque",
+			models.GetAllNotificationTopics(),
 			expiresAt,
 		)
 		if err != nil {
