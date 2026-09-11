@@ -37,7 +37,7 @@ func NewHandler(pool *Pool, dispatcher *dispatcher.Dispatcher, log *logger.Logge
 		pool:               pool,
 		dispatcher:         dispatcher,
 		log:                log,
-		pingTimer:          100 * time.Second,
+		pingTimer:          30 * time.Second,
 		pongAwaitTime:      60 * time.Second,
 		DisconnectClientCh: make(chan *models.WebsocketClient, 256),
 		Shutdown:           shutdownCh,
@@ -199,8 +199,11 @@ func (h *Handler) writePump(client *models.WebsocketClient) {
 			client.Conn.WriteMessage(websocket.TextMessage, message)
 		case <-ticker.C:
 			// Envia Ping para verificar se Windows está vivo
-			client.Conn.SetWriteDeadline(time.Now().Add(h.pingTimer))
-			client.Conn.WriteMessage(websocket.PingMessage, nil)
+			client.Conn.WriteControl(
+				websocket.PingMessage,
+				nil,
+				time.Now().Add(10*time.Second),
+			)
 		case <-h.Shutdown:
 			return
 		}
@@ -218,6 +221,7 @@ func (h *Handler) readPump(client *models.WebsocketClient) {
 
 	client.Conn.SetReadLimit(512)
 	client.Conn.SetReadDeadline(time.Now().Add(h.pongAwaitTime))
+
 	client.Conn.SetPongHandler(func(string) error {
 		client.Conn.SetReadDeadline(time.Now().Add(h.pongAwaitTime))
 		return nil
