@@ -43,6 +43,7 @@ func (h *Handler) SetupRoutes() *mux.Router {
 	webhookBlingRouter := r.NewRoute().Subrouter()
 	webhookBlingRouter.Use(h.webhookBlingInvoiceIssuedAuthorization)
 	webhookBlingRouter.HandleFunc("/webhook/bling/invoice-issued", h.HandleBlingInvoiceIssued).Methods("POST")
+	webhookBlingRouter.HandleFunc("/webhook/sheets/receipt", h.HandleSheetsReceipt).Methods("POST")
 
 	return r
 }
@@ -156,6 +157,33 @@ func (h *Handler) HandleBlingInvoiceIssued(w http.ResponseWriter, r *http.Reques
 		Topic:    models.INVOICE_ISSUED,
 		Title:    "Nova Nota Fiscal Emitida!",
 		Message:  fmt.Sprintf("A NF %s foi emitida pela SEFAZ", event.Data.Number),
+		Sound:    true,
+		Priority: "critical",
+	}
+
+	if err := h.broker.PublishNotification(r.Context(), notification); err != nil {
+		h.respondError(w, http.StatusInternalServerError, "Erro ao publicar notificação")
+		return
+	}
+
+	h.respondJSON(w, http.StatusOK, nil)
+}
+
+func (h *Handler) HandleSheetsReceipt(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		h.respondError(w, http.StatusBadRequest, "invalid body")
+	}
+	receipt := models.SheetsWebhookReceipt{}
+	if err := json.Unmarshal(body, &receipt); err != nil {
+		h.respondError(w, http.StatusBadRequest, "Erro ao fazer unmarshal do comprovante")
+		return
+	}
+	// Parse from event to notification
+	notification := &models.Notification{
+		Topic:    models.RECEIPT_RECEIVED,
+		Title:    "Novo comprovante registrado!",
+		Message:  fmt.Sprintf("%s acabou de publicar um novo comprovante referente a %s - %s de %s", receipt.User, receipt.Category, receipt.DocumentNumber, receipt.Party),
 		Sound:    true,
 		Priority: "critical",
 	}

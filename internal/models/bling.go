@@ -44,3 +44,12 @@ type BlingWebhookPayloadInvoice struct {
 	OperationNature BlingWebhookPayloadInvoiceRelatedField `json:"naturezaOperacao"`
 	Store           BlingWebhookPayloadInvoiceRelatedField `json:"loja"`
 }
+
+type SheetsWebhookReceipt struct {
+	Id             string `json:"id"`
+	Party          string `json:"party"`
+	Category       string `json:"category"`
+	DocumentNumber string `json:"documentNumber"`
+	PaymentMethod  string `json:"paymentMethod"`
+	User           string `json:"user"`
+}
