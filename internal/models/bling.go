@@ -29,20 +29,18 @@ type BlingWebhookEvent[T BlingWebhookEventTypes] struct {
 	Data      T      `json:"data"`
 }
 
+type BlingWebhookPayloadInvoiceRelatedField struct {
+	Id int32 `json:"id"`
+}
+
 type BlingWebhookPayloadInvoice struct {
-	Id            int32                               `json:"id"`
-	Type          BlingWebhookInvoicePayloadType      `json:"tipo"`
-	Situation     BlingWebhookInvoicePayloadSituation `json:"situacao"`
-	Number        string                              `json:"numero"`
-	EmissionDate  string                              `json:"dataEmissao"`
-	OperationDate string                              `json:"dataOperacao"`
-	Contact       struct {
-		Id int32 `json:"id"`
-	} `json:"contato"`
-	OperationNature struct {
-		Id int32 `json:"id"`
-	} `json:"naturezaOperacao"`
-	Store struct {
-		Id int32 `json:"id"`
-	} `json:"loja"`
+	Id              int32                                  `json:"id"`
+	Type            BlingWebhookInvoicePayloadType         `json:"tipo"`
+	Situation       BlingWebhookInvoicePayloadSituation    `json:"situacao"`
+	Number          string                                 `json:"numero"`
+	EmissionDate    string                                 `json:"dataEmissao"`
+	OperationDate   string                                 `json:"dataOperacao"`
+	Contact         BlingWebhookPayloadInvoiceRelatedField `json:"contato"`
+	OperationNature BlingWebhookPayloadInvoiceRelatedField `json:"naturezaOperacao"`
+	Store           BlingWebhookPayloadInvoiceRelatedField `json:"loja"`
 }
