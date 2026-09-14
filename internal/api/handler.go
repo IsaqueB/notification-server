@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/IsaqueB/notification-server/internal/broker"
@@ -41,9 +42,12 @@ func (h *Handler) SetupRoutes() *mux.Router {
 	r.HandleFunc("/health", h.HandleHealth).Methods("GET")
 
 	webhookBlingRouter := r.NewRoute().Subrouter()
-	webhookBlingRouter.Use(h.webhookBlingInvoiceIssuedAuthorization)
-	webhookBlingRouter.HandleFunc("/webhook/bling/invoice-issued", h.HandleBlingInvoiceIssued).Methods("POST")
-	webhookBlingRouter.HandleFunc("/webhook/sheets/receipt", h.HandleSheetsReceipt).Methods("POST")
+	webhookBlingRouter.Use(h.webhookBlingAuthorization)
+	webhookBlingRouter.HandleFunc("/webhook/bling/invoice", h.HandleBlingInvoiceIssued).Methods("POST")
+
+	sheetRouter := r.NewRoute().Subrouter()
+	webhookBlingRouter.Use(h.sheetsAuthorization)
+	sheetRouter.HandleFunc("/webhook/sheets/receipt", h.HandleSheetsReceipt).Methods("POST")
 
 	return r
 }
@@ -152,6 +156,12 @@ func (h *Handler) HandleBlingInvoiceIssued(w http.ResponseWriter, r *http.Reques
 		h.respondError(w, http.StatusBadRequest, "Erro ao fazer unmarshal do evento")
 		return
 	}
+
+	eventSplit := strings.Split(event.Event, ".")
+	if len(eventSplit) < 2 || eventSplit[0] != "invoice" || (eventSplit[1] != string(models.Issued) && eventSplit[1] != string(models.IssuedDANFE)) {
+		return
+	}
+
 	// Parse from event to notification
 	notification := &models.Notification{
 		Topic:    models.INVOICE_ISSUED,

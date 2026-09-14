@@ -3,8 +3,11 @@ package api
 import (
 	"context"
 	"encoding/base64"
+	"encoding/hex"
+	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/IsaqueB/notification-server/internal/auth"
@@ -69,6 +72,74 @@ func (h *Handler) webhookBlingInvoiceIssuedAuthorization(next http.Handler) http
 			return
 		}
 		sign := base64.RawURLEncoding.EncodeToString(auth.Sign_HS256([]byte(message), []byte(secret)))
+		if signature != sign {
+			h.log.Error("webhook middleware auth", "signature in header was not equal to calculated")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (h *Handler) webhookBlingAuthorization(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		signature := strings.TrimPrefix(r.Header.Get("X-Bling-Signature-256"), "sha256=")
+		if signature == "" {
+			h.log.Error("webhook middleware auth", "Could not find signature in header")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		message, err := io.ReadAll(r.Body)
+		if err != nil {
+			h.log.Error("webhook middleware auth", "Could not find payload to encode")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		secret := os.Getenv("BLING_CLIENT_SECRET")
+		defer func() { secret = "" }()
+		if secret == "" {
+			h.log.Error("webhook middleware auth", "Could not get auth secret in env")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		secretB, _ := hex.DecodeString(secret)
+		defer func() { secret = "" }()
+
+		sign := hex.EncodeToString(auth.Sign_HS256([]byte(message), secretB))
+		if signature != sign {
+			h.log.Error("webhook middleware auth", "signature in header was not equal to calculated")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (h *Handler) sheetsAuthorization(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		signature := strings.TrimPrefix(r.Header.Get("X-Sheets-Signature-256"), "sha256=")
+		if signature == "" {
+			h.log.Error("webhook middleware auth", "Could not find signature in header")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		message, err := io.ReadAll(r.Body)
+		if err != nil {
+			h.log.Error("webhook middleware auth", "Could not find payload to encode")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		secret := os.Getenv("SHEETS_CLIENT_SECRET")
+		defer func() { secret = "" }()
+		if secret == "" {
+			h.log.Error("webhook middleware auth", "Could not get auth secret in env")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		secretB, _ := hex.DecodeString(secret)
+		defer func() { secret = "" }()
+
+		sign := hex.EncodeToString(auth.Sign_HS256([]byte(message), secretB))
 		if signature != sign {
 			h.log.Error("webhook middleware auth", "signature in header was not equal to calculated")
 			w.WriteHeader(http.StatusUnauthorized)
