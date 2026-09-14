@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/hex"
@@ -91,14 +90,11 @@ func (h *Handler) webhookBlingAuthorization(next http.Handler) http.Handler {
 			return
 		}
 		message, err := io.ReadAll(r.Body)
-		defer r.Body.Close()
 		if err != nil {
 			h.log.Error("webhook middleware auth", "Could not find payload to encode")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		r.Body = io.NopCloser(bytes.NewBuffer(message))
-
 		secret := os.Getenv("BLING_CLIENT_SECRET")
 		defer func() { secret = "" }()
 		if secret == "" {
@@ -128,14 +124,11 @@ func (h *Handler) sheetsAuthorization(next http.Handler) http.Handler {
 			return
 		}
 		message, err := io.ReadAll(r.Body)
-		defer r.Body.Close()
 		if err != nil {
 			h.log.Error("webhook middleware auth", "Could not find payload to encode")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		r.Body = io.NopCloser(bytes.NewBuffer(message))
-
 		secret := os.Getenv("SHEETS_CLIENT_SECRET")
 		defer func() { secret = "" }()
 		if secret == "" {
