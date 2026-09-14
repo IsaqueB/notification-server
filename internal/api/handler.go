@@ -46,7 +46,7 @@ func (h *Handler) SetupRoutes() *mux.Router {
 	webhookBlingRouter.HandleFunc("/webhook/bling/invoice", h.HandleBlingInvoiceIssued).Methods("POST")
 
 	sheetRouter := r.NewRoute().Subrouter()
-	webhookBlingRouter.Use(h.sheetsAuthorization)
+	sheetRouter.Use(h.sheetsAuthorization)
 	sheetRouter.HandleFunc("/webhook/sheets/receipt", h.HandleSheetsReceipt).Methods("POST")
 
 	return r

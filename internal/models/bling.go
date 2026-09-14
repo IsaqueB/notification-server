@@ -14,7 +14,7 @@ const (
 type BlingWebhookInvoicePayloadSituation int32
 
 const (
-	Incoming BlingWebhookInvoicePayloadType = iota
+	Incoming BlingWebhookInvoicePayloadSituation = iota
 	Outgoing
 )
 
