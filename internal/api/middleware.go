@@ -146,7 +146,7 @@ func (h *Handler) sheetsAuthorization(next http.Handler) http.Handler {
 		secretB, _ := hex.DecodeString(secret)
 		defer func() { secret = "" }()
 
-		sign := hex.EncodeToString(auth.Sign_HS256([]byte(message), secretB))
+		sign := base64.StdEncoding.EncodeToString(auth.Sign_HS256([]byte(message), secretB))
 		if signature != sign {
 			h.log.Error("webhook middleware auth", "signature in header was not equal to calculated")
 			w.WriteHeader(http.StatusUnauthorized)
