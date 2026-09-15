@@ -3,12 +3,17 @@ package models
 type BlingWebhookInvoicePayloadSituation int32
 
 const (
-	Pending BlingWebhookInvoicePayloadSituation = iota
-	Issued
-	Cancelled
-	Rejected
-	Denied
-	IssuedDANFE
+	Pending          BlingWebhookInvoicePayloadSituation = 1
+	Cancelled        BlingWebhookInvoicePayloadSituation = 2
+	AwaitingReceipt  BlingWebhookInvoicePayloadSituation = 3
+	Rejected         BlingWebhookInvoicePayloadSituation = 4
+	Authorized       BlingWebhookInvoicePayloadSituation = 5
+	IssuedDANFE      BlingWebhookInvoicePayloadSituation = 6
+	Registered       BlingWebhookInvoicePayloadSituation = 7
+	AwaitingProtocol BlingWebhookInvoicePayloadSituation = 8
+	Denied           BlingWebhookInvoicePayloadSituation = 9
+	QuerySituation   BlingWebhookInvoicePayloadSituation = 10
+	Blocked          BlingWebhookInvoicePayloadSituation = 11
 )
 
 type BlingWebhookInvoicePayloadType int32
