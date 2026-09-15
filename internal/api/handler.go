@@ -157,6 +157,13 @@ func (h *Handler) HandleBlingInvoiceIssued(w http.ResponseWriter, r *http.Reques
 		h.respondError(w, http.StatusBadRequest, "Erro ao fazer unmarshal do evento")
 		return
 	}
+	h.log.Info(
+		"Informações evento Bling!",
+		"event", event.Event,
+		"tipo", event.Data.Type,
+		"situacao", event.Data.Situation,
+		"numero", event.Data.Number,
+	)
 
 	eventSplit := strings.Split(event.Event, ".")
 	if len(eventSplit) < 2 || eventSplit[0] != "invoice" || (eventSplit[1] != string("updated") && eventSplit[1] != string("created")) {
@@ -164,7 +171,7 @@ func (h *Handler) HandleBlingInvoiceIssued(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if event.Data.Situation != models.Issued && event.Data.Situation != models.IssuedDANFE {
+	if event.Data.Situation != models.Authorized && event.Data.Situation != models.IssuedDANFE {
 		h.log.Warn("Chegou evento mas não é sobre invoice emitida", event.Data.Situation)
 		return
 	}
