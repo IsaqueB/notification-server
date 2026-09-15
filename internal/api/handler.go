@@ -147,6 +147,7 @@ func (h *Handler) HandleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) HandleBlingInvoiceIssued(w http.ResponseWriter, r *http.Request) {
+	h.log.Info("Nova mensagem do webhook invoice do Bling!")
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		h.respondError(w, http.StatusBadRequest, "invalid body")
@@ -159,12 +160,12 @@ func (h *Handler) HandleBlingInvoiceIssued(w http.ResponseWriter, r *http.Reques
 
 	eventSplit := strings.Split(event.Event, ".")
 	if len(eventSplit) < 2 || eventSplit[0] != "invoice" || (eventSplit[1] != string("updated") && eventSplit[1] != string("created")) {
-		h.log.Debug("Chegou evento mas não é criação nem updated", event.Event)
+		h.log.Warn("Chegou evento mas não é criação nem updated", event.Event)
 		return
 	}
 
-	if event.Data.Type != models.Issued && event.Data.Type != models.IssuedDANFE {
-		h.log.Debug("Chegou evento mas não é sobre invoice emitida", event.Data.Type)
+	if event.Data.Situation != models.Issued && event.Data.Situation != models.IssuedDANFE {
+		h.log.Warn("Chegou evento mas não é sobre invoice emitida", event.Data.Situation)
 		return
 	}
 

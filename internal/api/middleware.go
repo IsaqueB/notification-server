@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"context"
+	"crypto/hmac"
 	"encoding/base64"
 	"encoding/hex"
 	"io"
@@ -106,11 +107,9 @@ func (h *Handler) webhookBlingAuthorization(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		secretB, _ := hex.DecodeString(secret)
-		defer func() { secret = "" }()
 
-		sign := hex.EncodeToString(auth.Sign_HS256([]byte(message), secretB))
-		if signature != sign {
+		sign := hex.EncodeToString(auth.Sign_HS256([]byte(message), []byte(secret)))
+		if !hmac.Equal([]byte(signature), []byte(sign)) {
 			h.log.Error("webhook middleware auth", "signature in header was not equal to calculated")
 			w.WriteHeader(http.StatusUnauthorized)
 			return

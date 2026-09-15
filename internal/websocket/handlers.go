@@ -103,7 +103,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var token string
-	expiresAt := time.Now().Add(5 * time.Second)
+	expiresAt := time.Now().Add(10 * time.Second)
 	switch body.ClientId {
 	case "weverton":
 		secret := os.Getenv("WEVERTON_LOGIN_SECRET")

@@ -1,9 +1,9 @@
 package models
 
-type BlingWebhookInvoicePayloadType int32
+type BlingWebhookInvoicePayloadSituation int32
 
 const (
-	Pending BlingWebhookInvoicePayloadType = iota
+	Pending BlingWebhookInvoicePayloadSituation = iota
 	Issued
 	Cancelled
 	Rejected
@@ -11,10 +11,10 @@ const (
 	IssuedDANFE
 )
 
-type BlingWebhookInvoicePayloadSituation int32
+type BlingWebhookInvoicePayloadType int32
 
 const (
-	Incoming BlingWebhookInvoicePayloadSituation = iota
+	Incoming BlingWebhookInvoicePayloadType = iota
 	Outgoing
 )
 
